@@ -1,0 +1,7 @@
+RewriteEngine On
+
+RewriteBase /
+
+RewriteRule ^recipe/(.*)$ /recipes/$1 [L,R=301]
+RewriteRule ^recipe$ /recipes [L,R=301]
+

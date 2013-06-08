@@ -1,0 +1,411 @@
+\input texinfo 
+@comment -*-texinfo-*- 
+
+@ignore
+	## This section by Robert Chassell <bob@rattlesnake.com>
+	## Summary of shell commands to create various output formats:
+
+	## Info output
+	makeinfo --no-split --paragraph-indent=0 --verbose oskit-mach.texi
+
+	## DVI output
+	texi2dvi oskit-mach.texi
+
+	## HTML output
+	texi2html oskit-mach.texi
+	makeinfo --html --no-split --verbose oskit-mach.texi
+
+	## Plain text output
+	makeinfo --fill-column=70 --no-split --paragraph-indent=0 \
+	--verbose --no-headers --output=oskit-mach.txt oskit-mach.texi
+@end ignore
+
+@smallbook
+
+@comment one or two lines within the code patches are too long, but 
+@comment we can't rewrite them.  Therefore, we are just going to 
+@comment ignore long lines.  If/when the patch changes, this should
+@comment become unnecssary.
+@finalout
+
+@comment %**start of header
+@setfilename oskit-mach.info
+@settitle Building OSKit-Mach
+@comment %**end of header
+
+@ifinfo
+This document details how to build oskit-mach.
+
+Copyright @copyright{} 2001 Kevin Kreamer
+
+This document is licensed under the GNU Free Documentation License.
+@end ifinfo
+
+@titlepage
+@sp 10
+@title Building OSKit-Mach
+@author Kevin Kreamer
+@comment Start the copyright page.
+@page
+@vskip 0pt plus 1filll
+Copyright @copyright{} 2001 Kevin Kreamer
+
+This document is licensed under the GNU Free Documentation License.
+@end titlepage
+
+@contents
+
+@comment $Id: oskit-mach.texi,v 1.13 2002/02/24 01:20:37 kkreamer Exp $
+
+@ifnottex
+@node Top
+
+This document details how to build oskit-mach.
+@end ifnottex
+
+@menu
+* Introduction::  Some opening remarks.
+* Audience:: Who should be reading this doc.
+* Mach Differences:: How OSKit-Mach differs from GNUmach.
+* Getting the source:: Where and how to obtain the needed source code.
+* Building OSKit:: How to build OSKit.
+* Building OSKit-Mach:: How to build OSKit-Mach.
+* Booting OSKit-Mach:: Booting your shiny new kernel.
+* Frequently Asked Questions:: With answers, even.
+@end menu
+
+@comment Get to the real meat of the issue...
+
+@node   Introduction, Audience, Top, Top
+@chapter Introduction
+@cindex Introduction
+@comment node-name, next, previous, up
+Mach is the microkernel currently used by the Hurd.  Mach was a research
+project of Carnegie Mellon University from 1985 to 1994.  After CMU
+concluded work on Mach 3, the University of Utah's Flux Group took over
+and produced version 4 of Mach.  The GNU Project of the Free Software
+Foundation then took up maintainership, in the form of GNUmach.  This is
+the variant that the Hurd uses today.
+
+OSKit is a collection of components along with a framework to lower the
+barrier of entry to operating system research.  Instead of spending
+months or years writing the boring infrastructure for your Really Cool
+OS Idea(tm), you simply use the parts you need from oskit and leave the
+rest.  OSKit currently runs on the StrongArm and Intel x86 platforms.
+
+Roland McGrath, a Hurd hacker and member of the Flux Group, decided to
+combine these two software packages to make oskit-mach as a personal
+project.  It has since become the primary development branch for 
+microkernel features (and bugfixes) for use with the Hurd.  Once it 
+stabilizes, it may well become the primary microkernel for the Hurd 
+project.
+
+
+@node Audience, Mach Differences, Introduction, Top
+@chapter Audience
+@cindex Audience
+This document assumes you have just heard about oskit-mach on a 
+mailing list or elsewhere, and want to help debug it.  It assumes that
+you are building on a Linux system@footnote{primarily because building
+it there is faster than building on the Hurd}, with the Hurd mounted at
+@file{/gnu}.  While this document has a few Debian-specific commands,
+the majority of it should be useful for other systems as well.
+
+This document should take you from only having the Hurd sources
+@footnote{no oskit or oskit-mach sources at all} to the point where
+oskit-mach begins to boot.  As far as getting it to successfully boot
+and run stable, that is why you are helping debug it :-)
+
+@node Mach Differences, Getting the source, Audience, Top
+@chapter Differences between GNUmach and OSKit-Mach
+@cindex Differences, GNUmach, OSKit-Mach
+This section is ripped pretty much verbatim from Roland's oskit-mach 
+announcement@footnote{@url{http://mail.gnu.org/pipermail/bug-hurd/1999-November/003554.html}}.
+
+@menu
+* OSKit-Mach Benefits:: What you get vs. GNUmach
+* OSKit-Mach Downsides:: What you lose vs. GNUmach
+@end menu
+
+@node OSKit-Mach Benefits, OSKit-Mach Downsides, Mach Differences, Mach Differences
+@section What you get vs. GNUmach
+All the benefits of an oskit kernel:
+
+@itemize @bullet
+@item 
+Device drivers from Linux 2.2.12 (IDE, SCSI, floppy, and Ethernet)
+(GNUmach has Linux 2.0.36 drivers with a few fixes.)
+
+@item 
+Serial-port console support with a very simple minimal serial driver
+
+@item 
+OSKit-style Multiboot support, including @samp{return address} hack for 
+extra-speedy soft reboot when using oskit's Netboot
+
+@item 
+Serial-port GDB support for debugging the microkernel in style
+
+@item 
+The University of Utah might maintain the device drivers for you
+
+@end itemize
+
+A much smaller source tree!  The unpacked oskit-mach sources total about
+a quarter of the GNUmach sources (though the oskit itself is much larger
+of course).  The gzip'd tar file of the source tree is about 700k, vs
+3.6MB for gnumach.  This is because Roland wiped out a bunch of the old
+cruft, as well as all the old device drivers and the Linux code.
+
+@node OSKit-Mach Downsides,, OSKit-Mach Benefits, Mach Differences 
+@section What you lose vs. GNUmach
+All the old device drivers are gone, so you only get what oskit has.  It
+would not be very hard to support some of the old drivers alongside the
+oskit drivers, but Roland is more interested in adding good new drivers
+to the oskit.
+
+@itemize @bullet
+@item 
+The PC screen/keyboard console driver is very minimal, and not
+compatible with the old Mach driver's terminal emulation.  The oskit's
+PC console emulates an adm3a terminal, and the keyboard input support is
+very simple.
+
+@item 
+No real serial drivers at all.  The serial drivers that provide the
+serial console and serial GDB are very minimal and not really generally
+usable serial drivers at all.  The oskit's freebsd serial driver might
+work, but the interface glue for features to serial ports (baud rate,
+modem control, etc) are not there.
+
+@item 
+No parallel (printer) port driver.  The oskit's freebsd printer driver
+might work, though.
+
+@item 
+No real drivers for PC keyboard or PS/2 mouse at all.  The oskit needs a
+good clean driver for the low-level keyboard access.
+
+@end itemize
+
+No DDB.  Roland ripped that out rather than making it work.  Serial GDB
+is much better anyway, but it may be useful at some point to resurrect
+some of DDB's code that prints out kernel data structures in
+comprehensible form.
+
+
+@node Getting the source, Building OSKit, Mach Differences, Top
+@chapter Getting the source
+@cindex Getting the source
+
+@menu
+* Getting OSKit:: How to obtain and prepare OSKit's source.
+* Getting OSKit-Mach:: How to obtain and prepare OSKit-Mach's source.
+@end menu
+
+@node Getting OSKit, Getting OSKit-Mach, Getting the source, Getting the source
+@section Getting OSKit
+You can download the oskit from the University of Utah's FTP server at 
+@url{ftp://flux.cs.utah.edu/flux/oskit/}.
+Be sure to get the latest snapshot@footnote{20010214 at the time of 
+this writing}.  Also, if you 
+use a Debian system, you can simply @command{apt-get install oskit} and
+go on to the next section without worrying about dealing with oskit's 
+source at all.
+
+The oskit snapshot requires a patch
+@footnote{@url{ftp://flux.cs.utah.edu/flux/oskit/mail/html/oskit-users/msg01253.html}}
+for oskit-mach to compile (your line numbers won't match):
+
+@smallexample
+Index: configure.in
+===================================================================
+RCS file: /usr/lsrc/flux/CVS/oskit/configure.in,v
+retrieving revision 1.149
+diff -b -u -r1.149 configure.in
+--- configure.in   2001/03/09 19:17:58  1.149
++++ configure.in   2001/08/26 22:05:12
+@@ -638,6 +638,12 @@
+ [if test $enableval = yes; then enableval=300; fi]
+ [OSKIT_DEFS="$OSKIT_DEFS -DLINUX_BOGOMIPS=$enableval"]
+ [oskit_options="linux-bogomips=$enableval $oskit_options"])
++
++flux_ARG_ENABLE(indirect-osenv,
++[  --enable-indirect-osenv internal debugging features and sanity checks],
++[OSKIT_DEFS="$OSKIT_DEFS -DINDIRECT_OSENV=1"]
++[oskit_options="indirect_osenv $oskit_options"])
++
+
+ outfiles="$outfiles Makeconf GNUmakefile
+ unsupported/scripts/gcc-driver-script"
+ outfiles="$outfiles unsupported/scripts/sym-trace"
+@end smallexample
+
+After applying this patch, be sure to @code{make clean}@footnote{or
+selectively remove the proper object files} before building oskit,
+because the automatic dependencies don't notice that this flag has
+changed.  It might also be advisable to run @code{autoconf} as well.
+Debian's @code{oskit} package contains this patch.
+
+@node Getting OSKit-Mach,, Getting OSKit, Getting the source
+@section Getting OSKit-Mach
+You want to use CVS to get the latest oskit-mach sources, by issuing
+@code{cvs -d
+:pserver:anoncvs@@subversions.gnu.org:/cvsroot/hurd co -d oskit-mach -r
+oskit-branch -P gnumach} which puts the sources in a subdirectory of
+your current directory named @file{oskit-mach}.
+
+You may or may not need additional patches to build and use oskit-mach.  
+If you get a panic upon booting oskit-mach by it trying to access address
+0x104, then you should try the trap.c 
+patch available at @url{http://www.etherhogz.org/src/patches/trap_c.patch}.
+Also, if you get an error message saying @samp{undefined reference to cli} 
+you need to change @samp{cli();} to @samp{asm("cli");} on line 70 of
+@file{i386/i386/pic.c} in the oskit-mach sources.
+
+MiG is required to build oskit-mach.  To get it@footnote{assuming a
+Debian system}, issue @code{apt-get install mig-1386-gnu}.
+
+
+@node Building OSKit, Building OSKit-Mach, Getting the source, Top
+@chapter Building OSKit
+@cindex Building OSKit
+Keep in mind, if you are using Debian, the @code{oskit} package 
+has been tested and works.  It is also far easier and 
+faster than compiling from source.  However, if you are interested 
+on hacking in oskit as well as oskit-mach, or simply want to 
+compile from source anyway, here is how to do so.  Note that these 
+instructions use your normal compiler, and not a cross-compiler.  
+Cross-compiling OSKit is not required, and indeed, is not recommended.
+
+To avoid having your comile error out with @samp{multiple definition of
+__libc_multiple_libcs}, edit @file{modules.x86.pc} 
+and comment out@footnote{put a # in front of} all the lines which start with
+@samp{unix} or start with @samp{examples/unix}.  This disables
+oskit-on-Unix functionality, but allows oskit compilation.
+
+It is also highly recommended that you go through all the other options
+in @file{modules.x86.pc} to choose which items you want compiled into
+oskit.  If you are not sure what you want included, include just these
+items:
+
+@example
+boot/multiboot
+clientos
+com
+crt
+dev
+diskpart
+exec
+flask
+kern
+libc
+linux/dev
+lmm
+oskit
+posix/sys
+smp
+startup
+unsupported
+@end example
+
+These additional modules compile all the example kernels, which you may 
+use to test oskit on your machine:
+
+@example
+bootp
+memdebug
+freebsd/dev
+netbsd/fs
+fsnamespace/fsn
+fsread
+memfs
+examples/x86
+@end example
+
+After getting the source in order, run @code{./configure --enable-debug
+--enable-indirect-osenv}.  Enabling debugging support is recommended if
+you plan on debugging oskit-mach.  On the other hand, if you want it to
+Just Work(tm), perhaps you should wait a while before trying oskit-mach.
+
+A simple @code{make} followed by a @code{make install}@footnote{as root,
+of course} builds and installs oskit.  By default, it is installed into
+@file{/usr/local}, but that can be changed via configure switches.
+
+@node Building OSKit-Mach, Booting OSKit-Mach, Building OSKit, Top
+@chapter Building OSKit-Mach
+@cindex Building OSKit-Mach
+Be sure to build oskit-mach in a different directory than the sources.
+A safe way to go is to @code{mkdir build} in the @file{oskit-mach}
+directory, and build there.  These instructions assume that you do.
+They also assume that you are using your normal compiler, like OSKit, 
+and not a cross-compiler.  Attempting to cross-compile oskit-mach 
+is likely to give you errors and possibly an elevated blood pressure.
+
+The build system needs to be told where you installed oskit.  To do
+this, specify that value using the @env{OSKIT_LIBDIR} environment
+variable on the @file{configure} command line.  It also needs to know
+where MiG is located, which can be passed via the @env{MIG} environment
+variable.  For instance, if you took the defaults so far
+@footnote{i.e. oskit is installed into @file{/usr/local}, mig is
+installed via apt-get, and the Hurd is mounted under @file{/gnu}}, you would
+want to issue @code{MIG=i386-gnu-mig OSKIT_LIBDIR=/usr/local/lib/oskit
+CFLAGS=-g ../configure --prefix=/gnu} to configure oskit-mach.  If
+OSKIT_LIBDIR is not set correctly, you will receive @samp{No rule to
+make target `kernel', needed by `all'.}  If you are planning on skipping
+the @code{make install} step and just directly copying the kernel to its
+final location, you may leave off the @samp{--prefix=/gnu} part of the
+@code{configure} line.
+
+To build it, issue @code{make}.  @code{make install} installs it
+@footnote{again, as root}.  The oskit-mach kernel should now be
+@file{/boot/oskit-mach} on your Hurd partition.  However, if you are
+interested only in the kernel and don't care about installing header
+files as well, you make skip the @code{make install} step as the kernel
+is in your build directory named @file{kernel}.  You may simply copy it
+to a bootable location, and boot it from there.
+
+
+@node Booting OSKit-Mach, Frequently Asked Questions, Building OSKit-Mach, Top
+@chapter Booting OSKit-Mach
+@cindex Booting OSKit-Mach
+To boot oskit-mach, you need a multiboot-compliant bootloader.  @code{grub}
+works fine.  To configure @code{grub}, simply add something like
+
+@example
+# For booting GNU/Hurd (experimental)
+title  GNU/Hurd Testing
+root   (hd0,4)
+kernel /boot/oskit-mach root=hd0s5
+module /boot/serverboot.gz
+@end example
+
+to your @file{menu.lst}, or type it into the grub command prompt after
+rebooting.  Either way, you should see @samp{Welcome to OSKit-Mach!} 
+scroll by when you boot that kernel.  The rest of the boot messages will
+be scattered across the screen; that is a known problem.
+
+Assuming all of this worked successfully for you, you should be able to
+start debugging oskit-mach.  If you have a second machine with a couple
+of serial cables, the preferred method is remote debugging using GDB.
+That is outside the scope of this document, though; see
+@url{http://www.etherhogz.org/doc/oskit-boot.txt}
+for a treatment of that topic.
+
+
+@node Frequently Asked Questions,,  Booting OSKit-Mach, Top
+@chapter Frequently Asked Questions
+@cindex FAQ, Frequently Asked Questions 
+
+@section How do I make sure oskit supports my machine?
+Try the oskit example kernels.  After building the example kernels, move
+them to a bootable location, like @file{/boot/oskit_example/}.  You can
+then boot them using grub's command prompt.  Read grub's documentation
+for more details.
+
+@section What's with oskit-mach's crazy build system?
+Roland came up with it.  No, we don't know what he was thinking either
+:-)
+
+@bye
+
